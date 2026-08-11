@@ -1,0 +1,33 @@
+{
+  "description": "End-to-end measurement on a real coding agent (GitHub Copilot CLI, claude-sonnet-5 model). Same question, with and without the OpenViking MCP server connected. Values read from the local assistant_usage_events table, not estimated.",
+  "question": "Which key does Team Alpha use to sign internal tokens?",
+  "arms": [
+    {
+      "name": "with-openviking",
+      "session_id": "4750095d-732c-426f-8eea-493bf7ab0541",
+      "turns": [
+        {"input_tokens": 78226, "output_tokens": 134, "nano_aiu": 19690400000},
+        {"input_tokens": 78788, "output_tokens": 79, "nano_aiu": 1784380000}
+      ],
+      "total_input_tokens": 157014,
+      "total_output_tokens": 213,
+      "total_aiu": 21.47478,
+      "tools_called": ["recall"],
+      "outcome": "the fact was retrieved from memory; the secret's value had been redacted by OpenViking during extraction"
+    },
+    {
+      "name": "control-no-memory",
+      "session_id": "12b593a9-223d-465f-a992-87b90a85a2ec",
+      "turns": [
+        {"input_tokens": 74263, "output_tokens": 128, "nano_aiu": 18693650000}
+      ],
+      "total_input_tokens": 74263,
+      "total_output_tokens": 128,
+      "total_aiu": 18.69365,
+      "tools_called": [],
+      "outcome": "no knowledge of the fact"
+    }
+  ],
+  "marginal_cost_aiu": 2.78113,
+  "marginal_cost_percentage": 14.9
+}

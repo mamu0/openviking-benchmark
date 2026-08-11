@@ -1,0 +1,25 @@
+{
+  "storage": {
+    "workspace": "/ABSOLUTE/PATH/openviking-lab/data",
+    "vectordb": { "name": "context", "backend": "local" },
+    "agfs": { "backend": "local" }
+  },
+  "embedding": {
+    "dense": {
+      "provider": "openai",
+      "model": "text-embedding-3-small",
+      "dimension": 1536,
+      "api_base": "https://RESOURCE-NAME.cognitiveservices.azure.com/openai/v1",
+      "api_key": "AZURE_AI_FOUNDRY_KEY"
+    }
+  },
+  "vlm": {
+    "provider": "openai",
+    "model": "gpt-5-mini",
+    "api_base": "https://RESOURCE-NAME.cognitiveservices.azure.com/openai/v1",
+    "api_key": "AZURE_AI_FOUNDRY_KEY"
+  },
+  "server": {
+    "auth_mode": "dev"
+  }
+}

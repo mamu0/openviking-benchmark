@@ -1,0 +1,119 @@
+{
+  "F1": {
+    "seed": {
+      "in_fresh": 662,
+      "in_cached": 0,
+      "out": 248,
+      "calls": 2,
+      "tools_used": [
+        "remember"
+      ],
+      "answer": "Done — I've stored the information. Would you like me to include it in the technical documentation or in a system diagram?",
+      "seconds": 5.46,
+      "cost_usd": 0.000661,
+      "ok": true
+    },
+    "cold": {
+      "in_fresh": 1949,
+      "in_cached": 0,
+      "out": 525,
+      "calls": 2,
+      "tools_used": [
+        "recall"
+      ],
+      "answer": "I checked the project memory: queues are separated by channel (one queue for email, one for SMS, one for push) — decision recorded here: viking://user/default/memories/events/2026/08/11/Separate queues per channel.md.\n\nMain reason: isolate channels so that a traffic spike or an issue on one channel does not slow down or block the others. Practical benefits:\n- independent scalability for each channel;\n- channel-specific retry/backoff policies and SLAs;\n- simpler monitoring and capacity planning;\n- isolation of failures/outages of external providers.",
+      "seconds": 9.99,
+      "cost_usd": 0.001537,
+      "ok": true
+    },
+    "control": {
+      "in_fresh": 77,
+      "in_cached": 0,
+      "out": 845,
+      "calls": 1,
+      "tools_used": [],
+      "answer": "I don't have enough context on your specific service: which technology do you use (RabbitMQ, Kafka, SQS, Redis, other)? Would you like a description of your real architecture or an overview of possible solutions and their rationale?\n\nMeanwhile, here is a summary of the most common ways to organize notification queues and why they are chosen:\n\nMain patterns\n- Topic/pub-sub (fan-out): one topic per event type; multiple subscribers (delivery services: email, push, sms) subscribe to it. Reason: decoupling, easy to extend delivery channels.\n- Queue per channel: one queue for each channel (email, push, sms). Reason: separate workload and channel-specific tuning (retry, throughput, worker pool).\n- Sharded/partitioned queues: partitioning by key (userId or tenant) across multiple queues or partitions. Reason: horizontal scalability and order preservation per key.\n- Queue per user/tenant (rare cases only): a dedicated queue for high-volume users or isolated tenants. Reason: isolation, priority/limit control; high cost/complexity.\n- Dead-letter queue (DLQ) + retry backoff: failed messages go to a DLQ after N attempts; retry with exponential backoff. Reason: robustness, avoiding busy-loops on permanent errors.\n- Priority/separate priority queues: distinct queues or a priority mechanism for critical notifications. Reason: guarantee low latency for critical messages.\n- Store-and-forward (event log + delivery workers): append-only events (e.g. Kafka) as the source of truth; consumers process and deliver. Reason: reprocessability, auditing, stateful consumer management.\n\nTechnical choices and main rationale\n- Scalability: partition queues or use a topic log (Kafka) for high throughput.\n- Ordering: to preserve order, partition by key; otherwise accept out-of-order delivery for better performance.\n- Reliability: use a DLQ, retries, consumer idempotency, and explicit acknowledgements for at-least-once delivery.\n- Costs/operations: many small queues simplify isolation but increase operational overhead; a centralized topic is simpler to manage.\n- Latency vs throughput: dedicated queues and worker autoscaling reduce latency; batching increases throughput but adds latency.\n- Throttling/backpressure: separate queues and rate limiters to avoid overloading external providers (e.g. an SMS gateway).\n- Traceability/audit: keeping an event log (event sourcing) makes recomputation and debugging easier.\n\nGeneral recommendation\n- Use an event topic plus per-channel worker pools, partitioned by userId if ordering matters; implement exponential retry and a DLQ; make workers idempotent; isolate channels that have different limits or costs.\n\nIf you tell me which technology and requirements (throughput, ordering, SLA, cost, multi-tenancy) apply, I can give you a detailed proposal with the rationale.",
+      "seconds": 8.56,
+      "cost_usd": 0.001709,
+      "ok": false
+    }
+  },
+  "F2": {
+    "seed": {
+      "in_fresh": 623,
+      "in_cached": 0,
+      "out": 325,
+      "calls": 2,
+      "tools_used": [
+        "remember"
+      ],
+      "answer": "Done — I've saved the information to memory. Would you like me to use it to create a note, a reminder, or to suggest a fix (for example extending the OIDC token duration or doing an automatic refresh before terraform apply)?",
+      "seconds": 5.74,
+      "cost_usd": 0.000806,
+      "ok": true
+    },
+    "cold": {
+      "in_fresh": 1932,
+      "in_cached": 0,
+      "out": 405,
+      "calls": 2,
+      "tools_used": [
+        "recall"
+      ],
+      "answer": "The root cause is that the OIDC token expired after 10 minutes while the `terraform apply` job could take up to ~25 minutes: authentication expired mid-run, causing the intermittent failure. I recommend increasing the token's duration/refresh or adding a credential renewal mechanism before the apply step.",
+      "seconds": 8.12,
+      "cost_usd": 0.001293,
+      "ok": true
+    },
+    "control": {
+      "in_fresh": 67,
+      "in_cached": 0,
+      "out": 922,
+      "calls": 1,
+      "tools_used": [],
+      "answer": "I can't know the root cause without logs/configuration, but here are the most common causes and how to diagnose them quickly.\n\nCommon possible causes\n- network issues/transient errors (image pulls, dependency downloads, access to external services)\n- insufficient resources or limits (timeouts, OOM, saturated runners/agents)\n- flaky tests or scripts (order dependence, timing, shared data)\n- concurrency/race conditions (parallel deploys, unmanaged locks)\n- credentials/secrets that expire or are intermittently regenerated\n- corrupted cache or non-deterministic artifacts (non-reproducible build)\n- intermittent external dependencies (package registry, DB, API)\n- CI configuration bugs (updated runner, incompatible plugin, missing variable)\n- infra issues (k8s nodes going down, intermittent storage)\n\nSteps to identify the root cause (high priority)\n1. collect full logs of the failed jobs (including timestamps and verbose output)\n2. correlate failures with infra metrics (CPU, memory, I/O, network) and external events (deploys, secret rotations)\n3. reproduce locally or in a staging environment the same job with the same commits/images\n4. increase verbosity and add trace/timestamps to the steps that fail\n5. isolate variables: run only build, only tests, only deploy to see which phase fails\n6. check patterns: does it always fail on the same runner/zone/branch/commit?\n7. check specific errors in the runner/agent logs and CI provider logs\n\nTemporary mitigations\n- introduce retry with backoff on network steps and image pulls\n- increase timeouts on fragile steps\n- pin image/dependency versions and clear suspect caches\n- isolate flaky tests (mark them as non-blocking) and add deterministic tests\n- run migrations outside the critical pipeline or with a lock\n\nWhat I need to get to the root cause\n- full logs of at least 2-3 failed runs (with timestamps)\n- pipeline configuration files (gitlab-ci.yml/jenkinsfile/github workflow)\n- information about the CI provider, runner/agent, and any recent changes (updates, secret rotations)\n- any infra metrics (CPU/mem/network) during the failure window\n\nWould you like me to analyze the logs and config if you paste them here?",
+      "seconds": 9.42,
+      "cost_usd": 0.001861,
+      "ok": false
+    }
+  },
+  "F3": {
+    "seed": {
+      "in_fresh": 656,
+      "in_cached": 0,
+      "out": 473,
+      "calls": 2,
+      "tools_used": [
+        "remember"
+      ],
+      "answer": "Done — I've saved this information to long-term memory. Would you like me to use it as a reminder for upcoming releases, or share it with your team (e.g. as an email or a checklist)?",
+      "seconds": 5.11,
+      "cost_usd": 0.00111,
+      "ok": true
+    },
+    "cold": {
+      "in_fresh": 1797,
+      "in_cached": 0,
+      "out": 1254,
+      "calls": 2,
+      "tools_used": [
+        "recall"
+      ],
+      "answer": "I checked the saved preferences: you prefer a two-phase migration (first backward-compatible changes, then the code release; removal of obsolete elements in a following release). Below is a concise procedure consistent with that choice.\n\nRecommended procedure (concise)\n- Planning: impact analysis (tables, indexes, FKs, data size), timing, maintenance window, rollback plan, and runbook.\n- Testing: unit/integration on dev; full run on staging with realistic data and a rollback rehearsal.\n- Writing migrations: idempotent and reversible scripts; separate schema changes from data migrations; use a migration tool (Flyway/Liquibase/Alembic/ActiveRecord).\n- Backups: verified snapshot/backup before any change; test the restore procedure.\n- Apply backward-compatible changes (phase 1): add nullable columns or ones with defaults, create new tables/indexes, do not remove or rename columns used by existing code.\n- Application deploy (phase 2): release code that takes advantage of the new columns/indexes; the old code must keep working with the new schema.\n- Data migrations: backfills and heavy transformations run in the background or in batches after the deploy, with throttling and monitoring.\n- Monitoring and checks: integrity checks, latency metrics, application errors, and data verification; keep rollback channels ready.\n- Cleanup in the following release: remove obsolete columns/objects only once all traffic uses the new schema.\n- Strategies for large tables: use online schema change (gh-ost, pt-online-schema-change), shadow table + swap, or chunked migrations; avoid long locks.\n- Replicas and clusters: coordinate changes across replica/primary, apply to a replica first if possible and promote, check lag.\n- Rollback: have rollback scripts and/or the ability to disable new features via a feature flag; restore from backup as a last resort.\n\nIf you want, I can prepare a detailed operational checklist or an example migration script for your specific DB (Postgres/MySQL/SQL Server).",
+      "seconds": 16.58,
+      "cost_usd": 0.002957,
+      "ok": true
+    },
+    "control": {
+      "in_fresh": 69,
+      "in_cached": 0,
+      "out": 1280,
+      "calls": 1,
+      "tools_used": [],
+      "answer": "Here is a concise, pragmatic procedure for performing a database migration. Adapt the steps to the DBMS (Postgres, MySQL, Oracle, SQL Server, etc.), data size, and downtime constraints.\n\n1. Goals and scope\n- Define goals (downtime reduction, consolidation, version upgrade, cloud move), data involved, time windows, and compliance requirements.\n\n2. Inventory and analysis\n- Map the schema, large tables, indexes, constraints, stored procedures, triggers, sequences, users/roles, collation/charset, sensitive data.\n- Assess compatibility between source and destination (data types, unsupported features).\n\n3. Migration strategy\n- Choose a mode: \"big-bang\" (with downtime), phased migration, replication/CDC for zero downtime, blue/green, or progressive cutover.\n- Choose tools: native backup/restore (pg_dump/pg_restore, mysqldump, Data Pump), CDC tools (Debezium, AWS DMS, GoldenGate), migration frameworks (Flyway, Liquibase).\n\n4. Planning and testing\n- Prepare a test environment that mirrors production.\n- Run at least one full dry run (schema + data + app) and measure timing and issues.\n- Estimate transfer and verification times.\n\n5. Technical preparation\n- Prepare scripts for: schema creation, indexes, users, permissions, procedures.\n- Define data transformations/mappings.\n- Prepare full backups and verify integrity (checksums, test restores).\n- Prepare a detailed rollback plan and restore scripts.\n\n6. Data synchronization (if needed)\n- To reduce downtime: initial bulk copy plus CDC to sync deltas; at cutover, stop the app or switch the connection after a final sync.\n- For big-bang: plan a write freeze before the export.\n\n7. Running the migration\n- Create the schema on the destination.\n- Transfer data (bulk copy), create indexes only after the copy to speed things up.\n- Replicate or apply final deltas (if applicable).\n- Migrate users/permissions and procedures if needed.\n\n8. Post-migration verification\n- Automated checks: row counts per table, data checksums/hashing (e.g. MD5/CRC over concatenated columns), backup file checksums, FK integrity checks.\n- Functional checks: test critical queries, application endpoints, performance.\n- Integrity checks: sequences/auto_increment aligned, triggers/constraints active.\n\n9. Cutover\n- Put production into maintenance mode (if needed), update connection strings, restart applications in a coordinated way.\n- Monitor logs and metrics in real time.\n\n10. Post-migration and monitoring\n- Intensive monitoring for at least 24-72 hours: performance, errors, query latency.\n- Run any needed optimizations (index rebuilds, updated statistics).\n- Document changes and update the runbook.\n\n11. Rollback and decommissioning\n- Keep backups and snapshots for the rollback window.\n- If a rollback is needed, run the predefined scripts. Verify consistency and reopen access.\n- After a stability period, decommission the old DB following the retention policy.\n\nRecommended checks and practices\n- Plan for performance and load testing.\n- Protect sensitive data during transfer (TLS, encryption).\n- Sync time zones and date formats.\n- Version the schema with a tool (Flyway/Liquibase).\n- Automate and log every step (migration log).\n\nIf you want, I can give you a detailed checklist or a step-by-step procedure specific to your DBMS (tell me: source, destination, data size, downtime tolerance).",
+      "seconds": 12.07,
+      "cost_usd": 0.002577,
+      "ok": false
+    }
+  }
+}

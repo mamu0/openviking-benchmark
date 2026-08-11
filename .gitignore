@@ -1,0 +1,7 @@
+.venv/
+*.log
+.key-*
+.azkey
+ov.conf
+ovcli.conf
+__pycache__/

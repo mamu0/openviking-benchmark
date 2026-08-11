@@ -1,0 +1,20 @@
+{
+  "F1": {
+    "category": "architectural decision",
+    "fact": "For the notification service, it was decided to use separate queues per channel (email, SMS, push) instead of a single queue with routing, because a traffic spike on one channel must not slow down the others.",
+    "question": "For the notification service, how are the message queues organized and why was that choice made?",
+    "expected": [["separat", "distinct", "one per channel"], ["email", "sms", "push"], ["spike", "isolat", "slow", "traffic"]]
+  },
+  "F2": {
+    "category": "bug root cause",
+    "fact": "The intermittent failure of the deploy pipeline was caused by the OIDC token expiring after 10 minutes, while the terraform apply job could take up to 25 minutes.",
+    "question": "What is the root cause of the intermittent failure of the deploy pipeline?",
+    "expected": [["oidc", "token"], ["10 minut", "ten minut", "expir"], ["terraform", "25 minut", "twenty-five"]]
+  },
+  "F3": {
+    "category": "team convention",
+    "fact": "Database migrations must always be executed in two phases: first the backward-compatible migration, then the release of the application code, and only in the following release the removal of obsolete columns.",
+    "question": "What procedure should be followed to perform a database migration?",
+    "expected": [["two phases", "two steps", "first", "step"], ["compatib", "backward"], ["column", "removal", "obsolete", "following release"]]
+  }
+}
